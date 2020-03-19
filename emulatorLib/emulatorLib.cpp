@@ -1,5 +1,6 @@
 #include "emulatorLib.h"
 #include "mbed.h"
+#include <math.h>
 #include <cstdint>
 
 //AMT21 encoder functions
@@ -18,10 +19,10 @@ uint16_t readAMT(RawSerial &ser, uint8_t id, DigitalOut flow_pin){
     uint8_t K0_cal = calK0(cal_data);
     uint8_t K1_cal = calK1(cal_data);
     if((K0 == K0_cal) && (K1 == K1_cal)) return cal_data;
-    // else {
-    //     overwatch.flags_set(0xF1);
-    //     return 0;
-    // }
+    else {
+        // overwatch.flags_set(0xF1);
+        return 0;
+    }
 }
 
 unsigned char calK0(uint16_t data){
@@ -43,17 +44,39 @@ unsigned char calK1(uint16_t data){
     return !parity;
 }
 
-// class Actuator {
-//     Private:
-//         DigitalOut en_pin;
-//         DigitalOut dir_pin;
-//         PwmOut step_pin;
-//     Public:
-//         void set_frequency(float);
-// };
+Actuator::Actuator(PinName STEP_in, PinName DIR_in, PinName EN_in):
+STEP(STEP_in), 
+DIR(DIR_in),
+EN(EN_in){
+    EN = 1;
+    fq = 100.0f;
+    STEP.write(0.50f);
+    STEP.period(1/fq);
+    this->hold();
+}
 
+Actuator::~Actuator(){
 
+}
 
-// void Actuator::set_frequency(float frequency) {
-//     step_pin.write(0.5f)
-// }
+void Actuator::enable(void){
+    EN = 0;
+}
+
+void Actuator::disable(void){
+    EN = 1;
+}
+
+void Actuator::hold(void){
+    STEP.suspend();
+}
+
+void Actuator::unHold(void){
+    STEP.resume();
+}
+
+void Actuator::setFrequency(float frequency) {
+    fq = frequency;
+    STEP.period(1/fq);
+}
+

@@ -139,7 +139,7 @@ BUILD\EMULATOR\GCC_ARM\mbed-os\features\cellular\framework\AT\ATHandler.o: \
  mbed-os/platform/CircularBuffer.h mbed-os/rtos/ConditionVariable.h \
  mbed-os/rtos/Semaphore.h mbed-os/platform/mbed_poll.h \
  mbed-os/platform/FileHandle.h mbed-os/platform/mbed_debug.h \
- mbed-os/rtos/ThisThread.h mbed-os/rtos/Kernel.h \
+ mbed-os/rtos/ThisThread.h Eigen/src/misc/Kernel.h \
  mbed-os/features/cellular/framework/common/CellularUtil.h \
  mbed-os/platform/SingletonPtr.h mbed-os/platform/mbed_atomic.h \
  mbed-os/platform/cxxsupport/mstd_type_traits \

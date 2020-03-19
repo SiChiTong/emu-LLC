@@ -21,10 +21,18 @@ DigitalOut fch1(FLOW_CH1);
 RawSerial enc2(UART2_TX, UART2_RX, 115200);
 DigitalOut fch2(FLOW_CH2);
 
-Thread idleThread(osPriorityLow);
-Ticker enct;
+DigitalOut output_enable_1(OE1);
+DigitalOut output_enable_2(OE2);
+DigitalOut output_enable_3(OE3);
+// PwmOut q6_step(Y14);
+// DigitalOut q6_dir(Y18);
+// DigitalOut q6_en(Y21);
+Actuator q6(Y14, Y18, Y21);
 
 DigitalOut pilot(OD2);
+
+Thread idleThread(osPriorityLow);
+Ticker enct;
 
 uint16_t raw_position = 0;
 double position;
@@ -36,7 +44,7 @@ float sigma_a = 0.1;
 float sigma_w = 0.1;
 float Q = pow(sigma_a, 2);
 float R = pow(sigma_w, 2);
-float dt = 0.01;
+float dt = 0.001;
 MatrixXd pp(2,2);
 MatrixXd i2(2,2);
 VectorXd xhat(2);
@@ -64,6 +72,9 @@ void uart4Callback(){
 }
 
 void initializeMsg(){
+    output_enable_1 = 0;
+    output_enable_2 = 0;
+    output_enable_3 = 0;
     ThisThread::sleep_for(10);
     uart4.printf("InternalTemp: %.2f C\n", temp_adc.read()*100);
     uart4.printf("SystemCoreClock: %ld Hz\n", SystemCoreClock);
@@ -71,17 +82,17 @@ void initializeMsg(){
 
 void kal_test(){
     raw_position = readAMT(enc2, 0x3C, fch2);
-    position = (raw_position/16383.0)*2*PI;
-    velocity = (position-prev_pos)/dt;
-    xhat_new = F*xhat;
-    zp = H*xhat;
-    ye = velocity - zp;
-    pp = F*pp*F.transpose()+G*G.transpose()*Q;
-    K = pp*H.transpose()*(1/(H*pp*H.transpose()+R));
-    xhat_new += K*(ye);
-    pp = (i2-K*H)*pp;
-    xhat = xhat_new;
-    prev_pos = position;
+    // position = (raw_position/16383.0)*2*PI;
+    // velocity = (position-prev_pos)/dt;
+    // xhat_new = F*xhat;
+    // zp = H*xhat;
+    // ye = velocity - zp;
+    // pp = F*pp*F.transpose()+G*G.transpose()*Q;
+    // K = pp*H.transpose()*(1/(H*pp*H.transpose()+R));
+    // xhat_new += K*(ye);
+    // pp = (i2-K*H)*pp;
+    // xhat = xhat_new;
+    // prev_pos = position;
 }
 
 int main(){
@@ -97,12 +108,27 @@ int main(){
     H << 0,1;
 
     idleThread.start(idleRoutine);
-    enct.attach(&kal_test, dt);
+    // enct.attach(&kal_test, dt);
 
     uart4.attach(&uart4Callback);
-    
+
+    // q6_en = 0;
+    // q6_dir = 1;
+    // q6_step.write(0.50f);
+    // q6_step.period(1/200.0f);
+
+    q6.enable();
+    q6.unHold();
+    q6.setFrequency(200.0f);
+
+    output_enable_1 = 1;
+    output_enable_2 = 1;
+    output_enable_3 = 1;
     while(1){
-        uart4.printf("%.2f\t%.4f\t%.4f\n",position, velocity, xhat(1));
-        ThisThread::sleep_for(100);
+        
+        // position = (raw_position/16383.0)*2*PI;
+        // velocity = (position-prev_pos)/dt;
+        // uart4.printf("%.2f,%.4f\n",position, velocity);
+        ThisThread::sleep_for(1000);
     }
 }
