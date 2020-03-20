@@ -4,7 +4,7 @@
 #include "emulatorLib.h"
 #include "eeprom.h"
 #include <Eigen/Dense.h>
-#include <math.h>
+#include <cmath>
 
 #define PI 3.14159265359
 
@@ -16,10 +16,10 @@ EEPROM memory(I2C4_SDA, I2C4_SCL, 0, 16384);
 RawSerial uart4(UART4_TX, UART4_RX, 1000000);
 BusOut onBoardLed(LD1, LD2, LD3, LD4);
 
-RawSerial enc1(UART5_TX, UART5_RX, 115200);
-DigitalOut fch1(FLOW_CH1);
+// RawSerial enc1(UART5_TX, UART5_RX, 115200);
+// DigitalOut fch1(FLOW_CH1);
 RawSerial enc2(UART2_TX, UART2_RX, 115200);
-DigitalOut fch2(FLOW_CH2);
+// DigitalOut fch2(FLOW_CH2);
 
 DigitalOut output_enable_1(OE1);
 DigitalOut output_enable_2(OE2);
@@ -27,7 +27,14 @@ DigitalOut output_enable_3(OE3);
 // PwmOut q6_step(Y14);
 // DigitalOut q6_dir(Y18);
 // DigitalOut q6_en(Y21);
-Actuator q6(Y14, Y18, Y21);
+// Stepper q6(Y14, Y18, Y21);
+// AMT21 q6_e(enc2, 0x3C, FLOW_CH2);
+// Actuator q2(Y1, Y7, Y5, enc2, 0x3C, FLOW_CH2);
+// Actuator q4(Y12, Y10, Y4, enc2, 0x3C, FLOW_CH2);
+// Actuator q5(Y15, Y11, Y19, enc2, 0x3C, FLOW_CH2);//Y13
+Actuator q6(Y14, Y18, Y21, enc2, 0x3C, FLOW_CH2);
+
+//cna't use Y12,Y13
 
 DigitalOut pilot(OD2);
 
@@ -35,7 +42,7 @@ Thread idleThread(osPriorityLow);
 Ticker enct;
 
 uint16_t raw_position = 0;
-double position;
+float position;
 double velocity = 0;
 double cov = 1;
 double zp;
@@ -44,7 +51,8 @@ float sigma_a = 0.1;
 float sigma_w = 0.1;
 float Q = pow(sigma_a, 2);
 float R = pow(sigma_w, 2);
-float dt = 0.001;
+int dt = 5;
+unsigned long t = 0;
 MatrixXd pp(2,2);
 MatrixXd i2(2,2);
 VectorXd xhat(2);
@@ -81,7 +89,7 @@ void initializeMsg(){
 }
 
 void kal_test(){
-    raw_position = readAMT(enc2, 0x3C, fch2);
+    // raw_position = readAMT(enc2, 0x3C, fch2);
     // position = (raw_position/16383.0)*2*PI;
     // velocity = (position-prev_pos)/dt;
     // xhat_new = F*xhat;
@@ -112,23 +120,25 @@ int main(){
 
     uart4.attach(&uart4Callback);
 
-    // q6_en = 0;
-    // q6_dir = 1;
-    // q6_step.write(0.50f);
-    // q6_step.period(1/200.0f);
-
-    q6.enable();
-    q6.unHold();
-    q6.setFrequency(200.0f);
+    //small 1000-1100 Hz,large 2000 Hz
+    q6.stepper.enable();
+    // q6.unHold();
+    // q6 = 500.0f;
+    
 
     output_enable_1 = 1;
     output_enable_2 = 1;
     output_enable_3 = 1;
     while(1){
-        
-        // position = (raw_position/16383.0)*2*PI;
+        position = 600.0f*sin(0.25*PI*float(t)*0.001);
+        q6 = position;
+        // raw_position = q6.at();
+        // position = (raw_position/16383.0f)*2*PI;
         // velocity = (position-prev_pos)/dt;
-        // uart4.printf("%.2f,%.4f\n",position, velocity);
-        ThisThread::sleep_for(1000);
+        uart4.printf("%.2f\n",position);
+        // uart4.printf("%d\n", raw_position);
+        prev_pos = position;
+        t += dt; 
+        ThisThread::sleep_for(dt);
     }
 }
