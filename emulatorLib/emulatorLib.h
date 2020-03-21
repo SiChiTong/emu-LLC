@@ -3,6 +3,10 @@
 
 #include "mbed.h"
 #include <cstdint>
+#include <Eigen/Dense.h>
+#include <cmath>
+
+using namespace Eigen;
 
 class Stepper {
     public:
@@ -10,14 +14,14 @@ class Stepper {
         ~Stepper();
         void enable(void);
         void disable(void);
-        void hold(void);
-        void unHold(void);
         void setFrequency(float);
+        void setMaxFrequency(float);
     private:
         DigitalOut  EN;
         DigitalOut  DIR;
         PwmOut      STEP;
         float       frequency; //Hz
+        float       max_frequency;
 };
 
 class AMT21{
@@ -28,10 +32,37 @@ class AMT21{
         void setID(uint8_t);
         uint16_t read();
         uint16_t read(uint8_t);
+        //Kalman Filter
+        void setKdt(float);
+        float getKdt();
+        void setSigmaW(float);
+        float getSigmaW();
+        void setSigmaA(float);
+        float getSigmaA();
+        void setCov1(float);
+        float getCov1();
+        void setCov2(float);
+        float getCov2();
+        void kmfInit();
+        float kmfUpdate();
     private:
         RawSerial&  SER;
         DigitalOut  FLOW;
         uint8_t     ID;
+        //Kalman Filter
+        bool k_init = 0;
+        float cov1 = 0.1f;
+        float cov2 = 0.1f;
+        float k_prev_pos;
+        float kdt = 0.005f; //Kalman Filter sampling time max: 0.0002883 sec(3468.208 Hz)
+        float sigma_a = 0.1f;
+        float sigma_w = 0.008f;
+        float Q, R;
+        Eigen::Matrix2d    Pp;
+        Eigen::Vector2d    x_hat, _x_hat, K, G;
+        Eigen::Matrix2d    F;
+        Eigen::RowVector2d H;
+        //Check sum
         unsigned char calK0(uint16_t);
         unsigned char calK1(uint16_t);
 };

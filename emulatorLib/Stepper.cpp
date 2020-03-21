@@ -8,14 +8,17 @@ STEP(_STEP),
 DIR(_DIR),
 EN(_EN){
     this->enable();
-    // this->hold();
+    this->setMaxFrequency(1000.0f);
+    this->setFrequency(0.0f);
     this->DIR = 0;
-    this->STEP.write(0.50f);
-    this->setFrequency(100.0f);
 }
 
 Stepper::~Stepper(){
 
+}
+
+void Stepper::setMaxFrequency(float _frequency){
+    this->max_frequency = _frequency;
 }
 
 void Stepper::enable(void){
@@ -26,24 +29,23 @@ void Stepper::disable(void){
     this->EN = 1;
 }
 
-void Stepper::hold(void){
-    this->STEP.suspend();
-}
-
-void Stepper::unHold(void){
-    this->STEP.resume();
-}
-
 void Stepper::setFrequency(float _frequency) {
     this->frequency = _frequency;
-    if (this->frequency == 0.0f){
+    float f;
+    if (abs(this->frequency) <= 0.1f)
+        f = 0.1f;
+    else if (abs(this->frequency) >= this->max_frequency)
+        f = this->max_frequency;
+    else
+        f = _frequency;
+
+    if (this->frequency > 0.0f){
+        this->STEP.write(0.50f);
         this->DIR = 0;
-    }
-    else if (this->frequency > 0.0f){
-        this->DIR = 0;
-        this->STEP.period(1/this->frequency);
+        this->STEP.period(1/f);
     } else if (this->frequency < 0.0f){
+        this->STEP.write(0.50f);
         this->DIR = 1; 
-        this->STEP.period(1/abs(this->frequency));
+        this->STEP.period(1/abs(f));
     }
 }
