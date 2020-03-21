@@ -4,8 +4,8 @@
 
 AMT21::AMT21(RawSerial &_SER, uint8_t _ID, PinName _FLOW):
 SER(_SER),
-FLOW(_FLOW)
-{
+FLOW(_FLOW),
+state(){
     this->ID = _ID;
     this->SER.baud(115200);
 }
@@ -14,13 +14,11 @@ AMT21::~AMT21(){
 
 }
 
-void AMT21::setID(uint8_t _ID){
-    this->ID = _ID;
-}
+void AMT21::setID(uint8_t _ID){this->ID = _ID;}
+uint8_t AMT21::getID(){return this->ID;}
 
-uint8_t AMT21::getID(){
-    return this->ID;
-}
+void AMT21::setChecksum(bool isChk){this->check = isChk;}
+bool AMT21::getChecksum(){return this->check;}
 
 uint16_t AMT21::read(){
     this->FLOW = 1;
@@ -43,17 +41,19 @@ uint16_t AMT21::read(uint8_t check){
     uint8_t lb = this->SER.getc();
     uint8_t hb = this->SER.getc();
     uint16_t cal_data = lb|((hb&0x3F)<<8);
-    if (check == 1){
-        uint8_t K0 = (hb & 0x40)>>6;
-        uint8_t K1 = (hb & 0x80)>>7;
-        uint8_t K0_cal = this->calK0(cal_data);
-        uint8_t K1_cal = this->calK1(cal_data);
-        if((K0 == K0_cal) && (K1 == K1_cal)) return cal_data;
+    if (check){
+        uint8_t checksum_read = ((hb & 0x80)>>6) | ((hb & 0x40)>>6);
+        uint8_t checksum_cal = this->checksum(cal_data);
+        if(checksum_read == checksum_cal) return cal_data;
         else {
         // overwatch.flags_set(0xF1);
         return 0;
         }
     } else return cal_data;
+}
+
+double AMT21::readPosition(){
+    return (this->read(this->check)*double(this->ratio)*2*PI)/16383.0;
 }
 
 void AMT21::setKdt(float num){
@@ -78,8 +78,8 @@ float AMT21::getCov2(){return this->cov2;}
 
 void AMT21::kmfInit(){
     this->Pp << this->cov1,0, 0,this->cov2;
-    // i2 << 1,0, 0,1;
-    this->x_hat << 0,0;
+    this->k_prev_pos = this->readPosition();
+    this->x_hat << this->readPosition(),0;
     this->_x_hat << 0,0;
     this->K << 0,0;
     this->F << 1,0, this->kdt,1;
@@ -87,13 +87,11 @@ void AMT21::kmfInit(){
     this->H << 0,1;    
     this->Q = pow(this->sigma_a, 2);
     this->R = pow(this->sigma_w, 2);
-    this->k_prev_pos = 0.0f;
     this->k_init = 1;
 }
 
-float AMT21::kmfUpdate(){
-    float raw_position = this->read();
-    float position = (raw_position/16383.0f)*2*PI;
+void AMT21::kmfEstimate(){
+    double position = this->readPosition();
     float velocity = (position-this->k_prev_pos)/this->kdt;
     this->_x_hat = this->F*this->x_hat;
     float zp = this->H*this->x_hat;
@@ -104,24 +102,19 @@ float AMT21::kmfUpdate(){
     this->Pp = (Matrix2d::Identity()-this->K*this->H)*this->Pp;
     this->x_hat = this->_x_hat;
     this->k_prev_pos = position;
-    return this->x_hat(1,0);
+    this->state.positionIsAt(position*double(this->ratio));
+    this->state.velocityIsAt(this->x_hat(1,0)*this->ratio);
 }
 
-unsigned char AMT21::calK0(uint16_t data){
-    unsigned char parity=0;
+unsigned char AMT21::checksum(uint16_t data){
+    unsigned char K0=0;
+    unsigned char K1=0;
+    uint16_t dataK1 = data >> 1;
     while(data){
-        parity^=(data &1);
+        K0^=(data &1);
+        K1^=(dataK1 &1);
         data>>=2;
+        dataK1>>=2;
     }
-    return !parity;
-}
-
-unsigned char AMT21::calK1(uint16_t data){
-    unsigned char parity=0;
-    data >>= 1;
-    while(data){
-        parity^=(data &1);
-        data>>=2;
-    }
-    return !parity;
+    return (!K1<<1) | !K0;
 }

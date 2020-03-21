@@ -8,14 +8,31 @@
 
 using namespace Eigen;
 
+class JointState{
+    public:
+        JointState(){}
+        JointState(double initial_pos, float initial_vel){
+            this->q = initial_pos;
+            this->qd = initial_vel;
+        }
+        ~JointState(){}
+        void    positionIsAt(double pos){this->q = pos;}
+        void    velocityIsAt(float vel){this->qd = vel;}
+        double  position(){return q;}
+        float   velocity(){return qd;}
+    private:
+        double  q = 0.0;
+        float   qd = 0.0f;
+};
+
 class Stepper {
     public:
         Stepper(PinName, PinName, PinName);
         ~Stepper();
-        void enable(void);
-        void disable(void);
-        void setFrequency(float);
-        void setMaxFrequency(float);
+        void        enable(void);
+        void        disable(void);
+        void        setFrequency(float);
+        void        setMaxFrequency(float);
     private:
         DigitalOut  EN;
         DigitalOut  DIR;
@@ -28,53 +45,57 @@ class AMT21{
     public:
         AMT21(RawSerial&, uint8_t, PinName);
         ~AMT21();
-        uint8_t getID();
-        void setID(uint8_t);
-        uint16_t read();
-        uint16_t read(uint8_t);
+        JointState  state;
+        void        setID(uint8_t);
+        uint8_t     getID();
+        void        setChecksum(bool);
+        bool        getChecksum();
+        uint16_t    read();
+        uint16_t    read(uint8_t);
+        double      readPosition();
         //Kalman Filter
-        void setKdt(float);
-        float getKdt();
-        void setSigmaW(float);
-        float getSigmaW();
-        void setSigmaA(float);
-        float getSigmaA();
-        void setCov1(float);
-        float getCov1();
-        void setCov2(float);
-        float getCov2();
-        void kmfInit();
-        float kmfUpdate();
+        void        setKdt(float);
+        float       getKdt();
+        void        setSigmaW(float);
+        float       getSigmaW();
+        void        setSigmaA(float);
+        float       getSigmaA();
+        void        setCov1(float);
+        float       getCov1();
+        void        setCov2(float);
+        float       getCov2();
+        void        kmfInit();
+        void        kmfEstimate();
     private:
         RawSerial&  SER;
         DigitalOut  FLOW;
         uint8_t     ID;
+        float       ratio = 1.0f;   //Velocity ratio between encoder and destination
+        bool        check = 1;      //Allow to calculate checksum
         //Kalman Filter
-        bool k_init = 0;
-        float cov1 = 0.1f;
-        float cov2 = 0.1f;
-        float k_prev_pos;
-        float kdt = 0.005f; //Kalman Filter sampling time max: 0.0002883 sec(3468.208 Hz)
-        float sigma_a = 0.1f;
-        float sigma_w = 0.008f;
-        float Q, R;
+        bool        k_init = 0;
+        float       cov1 = 1.0f;
+        float       cov2 = 1.0f;
+        float       k_prev_pos;
+        float       kdt = 0.005f;   //Kalman Filter sampling time max: 0.0002883 sec(3468.208 Hz)
+        float       sigma_a = 0.1f;
+        float       sigma_w = 0.008f;
+        float       Q, R;
         Eigen::Matrix2d    Pp;
         Eigen::Vector2d    x_hat, _x_hat, K, G;
         Eigen::Matrix2d    F;
         Eigen::RowVector2d H;
-        //Check sum
-        unsigned char calK0(uint16_t);
-        unsigned char calK1(uint16_t);
+        unsigned char checksum(uint16_t);
 };
 
 class Actuator {
     public:
         Actuator(PinName, PinName, PinName, RawSerial&, uint8_t, PinName);
         ~Actuator();
-        Stepper stepper;
-        AMT21 encoder;
-        uint16_t at();
-        void operator=(float);
+        Stepper     stepper;
+        AMT21       encoder;
+        uint16_t    at();
+        void        operator=(float);
     // private:
 };
 
