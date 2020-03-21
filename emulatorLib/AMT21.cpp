@@ -106,6 +106,20 @@ void AMT21::kmfEstimate(){
     this->state.velocityIsAt(this->x_hat(1,0)*this->ratio);
 }
 
+double AMT21::position(){
+    if (k_init)
+        return this->state.position();
+    else
+        return this->readPosition();
+}
+
+float AMT21::velocity(){
+    if (k_init)
+        return this->state.velocity();
+    else
+        return 0;
+}
+
 unsigned char AMT21::checksum(uint16_t data){
     unsigned char K0=0;
     unsigned char K1=0;

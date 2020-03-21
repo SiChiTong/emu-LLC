@@ -1,7 +1,4 @@
 #include "emulatorLib.h"
-#include "mbed.h"
-#include <math.h>
-#include <cstdint>
 
 Actuator::Actuator(PinName _STEP, PinName _DIR, PinName _EN, RawSerial &_SER, uint8_t _ID, PinName _FLOW):
 stepper(_STEP, _DIR, _EN),
@@ -18,5 +15,5 @@ void Actuator::operator=(float fd){
 }
 
 uint16_t Actuator::at(){
-    return this->encoder.read();
+    return this->encoder.position();
 }

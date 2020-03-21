@@ -1,7 +1,4 @@
 #include "emulatorLib.h"
-#include "mbed.h"
-#include <cmath>
-#include <cstdint>
 
 Stepper::Stepper(PinName _STEP, PinName _DIR, PinName _EN):
 STEP(_STEP), 

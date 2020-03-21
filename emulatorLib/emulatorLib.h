@@ -53,6 +53,8 @@ class AMT21{
         uint16_t    read();
         uint16_t    read(uint8_t);
         double      readPosition();
+        double      position();     //Filtered position
+        float       velocity();     //Filtered position
         //Kalman Filter
         void        setKdt(float);
         float       getKdt();
