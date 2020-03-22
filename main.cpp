@@ -36,7 +36,6 @@ signed int raw_position = 0;
 float position;
 float velocity = 0;
 float raw_velocity = 0;
-int dt = 5;
 unsigned long t = 0;
 
 float prev_pos = 0.0;
@@ -80,7 +79,6 @@ int main(){
     //small 1000-1100 Hz,large 2000 Hz
     q6.stepper.enable();
     q6.stepper.setMaxFrequency(1200.0f*4.0f);
-    // q6.stepper.unHold();
     q6.encoder.kmfInit();
     enct.attach(&kal_test, q6.encoder.getKdt());
 
@@ -89,16 +87,9 @@ int main(){
     output_enable_3 = 1;
     while(1){
         q6 = 100.0f;
-        // raw_position = q6.encoder.read();
-        // uart4.printf("%d\n",1);
         // position = 1000.0f*4.0f*sin(1*PI*float(t)*0.001);
         // q6 = position;
-        // raw_position = q6.at();
-        // position = (raw_position/16383.0f)*2*PI;
-        // raw_velocity = (position-prev_pos)/(float(dt)*0.001f);
         uart4.printf("%.2f,%.4f\n",q6.encoder.position(), q6.encoder.velocity());
-        // prev_pos = position;
-        // t += dt; 
         ThisThread::sleep_for(50);
     }
 }
