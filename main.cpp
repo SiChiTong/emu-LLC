@@ -43,9 +43,9 @@ float raw_velocity = 0;
 float prev_pos = 0.0;
 
 struct message{
-    uint8_t     startByte;
-    uint8_t     dataLen;//Excluding start,dataLen, and command
-    uint8_t     command;
+    uint8_t     startByte = 0;
+    uint8_t     dataLen = 0;//Excluding start,dataLen, and command
+    uint8_t     command = 0;
     uint8_t     data[255];
     uint32_t    crc32;
 };
@@ -66,16 +66,22 @@ void idleRoutine(){
 uint8_t a;
 void uart4Callback(){
     if (uart4.readable()){
+        uint8_t crc[4];
         uart4Rx.startByte = uart4.getc();
         a = uart4Rx.startByte;
         if (uart4Rx.startByte == 0x7E){
             uart4Rx.dataLen = uart4.getc();
             uart4Rx.command = uart4.getc();
-            for (uint8_t i = 0; i <= uart4Rx.dataLen-1; i++)
-                uart4Rx.data[i] = uart4.getc();
+            for (uint8_t i = 0; i <= uart4Rx.dataLen+3; i++){
+                if (i >= uart4Rx.dataLen)
+                    crc[i-uart4Rx.dataLen] = uart4.getc();
+                else
+                    uart4Rx.data[i] = uart4.getc();
             }
-            uart4Rx.crc32 = crc32((char*)uart4Rx.data,uart4Rx.dataLen);
+            uart4Rx.crc32 = (crc[0]<<24)|(crc[1]<<16)|(crc[2]<<8)|crc[3];
+            uint32_t expectedCrc32 = crc32((char*)uart4Rx.data,uart4Rx.dataLen);
         }
+    }
     uart4Rx.startByte = 0;
     // m2 = uart4.getc();
     // ThisThread::sleep_for(1);
@@ -125,7 +131,9 @@ int main(){
         // q2 = position;
         
         // uart4.printf("%.2f,%.4f\n",q6.encoder.position(), q6.encoder.velocity());
-        uart4.printf("%d\t%d\t%d\t%d\t0x%X\n", a, uart4Rx.data, uart4Rx.data[0], uart4Rx.data[uart4Rx.dataLen-1], uart4Rx.crc32);
+        // uart4.printf("%X\t%X\t%X\t%X\t0x%X\n", crc[0],crc[1],crc[2],crc[3], uart4Rx.crc32);
+        uart4.printf("%d\t%d\t%d\t%d\t%d\t", a, uart4Rx.dataLen, uart4Rx.command,uart4Rx.data[0], uart4Rx.data[uart4Rx.dataLen-1]);
+        uart4.printf("0x%X\n", uart4Rx.crc32);
         ThisThread::sleep_for(200);
     }
 }
