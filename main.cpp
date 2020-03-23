@@ -14,9 +14,9 @@ using namespace Eigen;
 uint64_t t = 0;
 AnalogIn temp_adc(ADC_TEMP);
 EEPROM memory(I2C4_SDA, I2C4_SCL, 0, 16384);
-RawSerial uart4(UART4_TX, UART4_RX, 1000000);
 BusOut onBoardLed(LD1, LD2, LD3, LD4);
 
+RawSerial uart4(UART4_TX, UART4_RX, 1000000);
 RawSerial enc1(UART5_TX, UART5_RX, 115200);
 RawSerial enc2(UART2_TX, UART2_RX, 115200);
 

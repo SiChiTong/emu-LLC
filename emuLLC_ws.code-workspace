@@ -9,7 +9,8 @@
 			"mstd_iterator": "cpp",
 			"*.tpp": "cpp",
 			"mstd_atomic": "cpp",
-			"mstd_type_traits": "cpp"
+			"mstd_type_traits": "cpp",
+			"mstd_mutex": "cpp"
 		}
 	}
 }
