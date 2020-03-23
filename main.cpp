@@ -44,8 +44,8 @@ float prev_pos = 0.0;
 
 struct message{
     uint8_t     startByte = 0;
-    uint8_t     dataLen = 0;//Excluding start,dataLen, and command
     uint8_t     command = 0;
+    uint8_t     dataLen = 0;//Excluding start,dataLen, and command
     uint8_t     data[255];
     uint32_t    crc32;
 };
@@ -70,8 +70,8 @@ void uart4Callback(){
         uart4Rx.startByte = uart4.getc();
         a = uart4Rx.startByte;
         if (uart4Rx.startByte == 0x7E){
-            uart4Rx.dataLen = uart4.getc();
             uart4Rx.command = uart4.getc();
+            uart4Rx.dataLen = uart4.getc();
             for (uint8_t i = 0; i <= uart4Rx.dataLen+3; i++){
                 if (i >= uart4Rx.dataLen)
                     crc[i-uart4Rx.dataLen] = uart4.getc();

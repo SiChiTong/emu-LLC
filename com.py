@@ -50,20 +50,18 @@ class Emuart:
             if data[1] == 255:
                 return list(data)
 
-    def write(self, data):    
-        self.ser.write(data)
-        return 1
+    def write(self, command, data):    
+        header = [0x7E, command, len(data)]
+        crc32 = binascii.crc32(bytes(data))
+        crcSep = [(crc32>>24)&0xFF, (crc32>>16)&0xFF, (crc32>>8)&0xFF, crc32&0xFF]
+        data = header+data+crcSep
+        self.ser.write(bytes(data))
 
 
 
 
 
 if __name__ == "__main__":
-    data = [126, 50, 69]
-    data = []
-    for i in range(1,51):
-        data.append(i)
-    print (data)
-    print (hex(binascii.crc32(bytes(data))))
+    pass
 
 
