@@ -14,6 +14,10 @@ void Actuator::operator=(float fd){
     this->stepper.setFrequency(fd);
 }
 
+void Actuator::operator=(int fd){
+    this->stepper.setFrequency(fd);
+}
+
 uint16_t Actuator::at(){
     return this->encoder.position();
 }

@@ -32,6 +32,7 @@ class Stepper {
         void        enable(void);
         void        disable(void);
         void        setFrequency(float);
+        void        setFrequency(int);
         void        setMaxFrequency(float);
     private:
         DigitalOut  EN;
@@ -98,6 +99,7 @@ class Actuator {
         AMT21       encoder;
         uint16_t    at();
         void        operator=(float);
+        void        operator=(int);
     // private:
 };
 

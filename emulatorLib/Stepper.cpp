@@ -46,3 +46,7 @@ void Stepper::setFrequency(float _frequency) {
         this->STEP.period(1/abs(f));
     }
 }
+
+void Stepper::setFrequency(int _frequency){
+    this->setFrequency(float(_frequency));
+}
