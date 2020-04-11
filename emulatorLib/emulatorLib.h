@@ -4,9 +4,38 @@
 #include "mbed.h"
 #include <cstdint>
 #include <Eigen/Dense.h>
+#include "FIFO.hpp"
+#include "crc.h"
+#include <functional>
 #include <cmath>
 
 using namespace Eigen;
+
+class Emuart{
+    public:
+        Emuart(RawSerial &_SER, unsigned int bufferSize);
+        Emuart(RawSerial &_SER, unsigned int bufferSize, float samplingTime);
+        ~Emuart();
+        void            init(void);
+        uint8_t         command;
+        uint8_t         data[256]; //command will be added at dataLen+1 when calculate checksum
+        uint8_t         dataLen; //Excluding start,dataLen
+        void            clearData(void);
+        int             parse(void);
+        void            clearInputBuffer(void);
+        void            setBufferSize(unsigned int size);
+        unsigned int    getBufferSize(void);
+        void            setSamplingTime(float Ts);
+        float           getSamplingTime(void);
+        void            rxCallback(void);
+    private:
+        RawSerial&      SER;
+        FIFO<uint8_t>   fifo;
+        unsigned int    bufferSize;
+        unsigned int    samplingTime;
+        uint32_t        checksum; //crc32
+        
+};
 
 class JointState{
     public:

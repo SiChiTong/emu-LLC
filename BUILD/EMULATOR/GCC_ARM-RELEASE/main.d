@@ -347,5 +347,5 @@ BUILD\EMULATOR\GCC_ARM-RELEASE\main.o: main.cpp \
  Eigen/src/Eigenvalues/./ComplexSchur.h Eigen/src/Eigenvalues/RealQZ.h \
  Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  Eigen/src/Eigenvalues/./RealQZ.h \
- Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h emulatorLib/eeprom.h \
- CRC/crc.h
+ Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h emulatorLib/FIFO.hpp \
+ CRC/crc.h emulatorLib/eeprom.h emulatorLib/FIFO.hpp

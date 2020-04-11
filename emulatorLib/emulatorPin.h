@@ -44,6 +44,10 @@
 #define OD2 PC_2
 #define OD3 PC_1
 #define OD4 PC_0
+#define OD5 PB_11
+#define OD6 PB_10
+#define OD7 PE_15
+#define OD8 PE_14
 
 #define UART4_RX PD_9
 #define UART4_TX PD_8
