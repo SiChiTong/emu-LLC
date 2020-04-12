@@ -4,7 +4,7 @@ Emuart::Emuart(RawSerial &_SER, unsigned int bufferSize):
 SER(_SER),
 fifo(bufferSize){
     this->bufferSize = bufferSize;
-    this->setSamplingTime(0.005); 
+    this->setSamplingTime(0.003); 
 }
 
 Emuart::Emuart(RawSerial &_SER, unsigned int bufferSize, float samplingTime):
@@ -54,6 +54,37 @@ int Emuart::parse(){
     }
 }
 
+void Emuart::write(uint8_t _command, uint8_t _dataLen, uint8_t* _dataBuffer){
+    uint8_t dataForCrc[_dataLen+1];
+    this->SER.putc(0x7E);
+    this->SER.putc(0x77);
+    this->SER.putc(_command);
+    this->SER.putc(_dataLen);
+    for (int i = 0; i <= _dataLen-1; i++){
+        dataForCrc[i] = _dataBuffer[i];
+        this->SER.putc(_dataBuffer[i]);
+    }
+    dataForCrc[_dataLen] = _command;
+    uint32_t crc32Send = crc32((char*)dataForCrc,_dataLen+1);
+    this->SER.putc(crc32Send>>24);
+    this->SER.putc((crc32Send>>16)&0x000000FF);
+    this->SER.putc((crc32Send>>8)&0x000000FF);
+    this->SER.putc((crc32Send)&0x000000FF);
+}
+
+void Emuart::write(uint8_t _command){
+    this->SER.putc(0x7E);
+    this->SER.putc(0x77);
+    this->SER.putc(_command);
+    this->SER.putc(0);
+    uint8_t dataForCrc[1] = {_command};
+    uint32_t crc32Send = crc32((char*)dataForCrc,1);
+    this->SER.putc(crc32Send>>24);
+    this->SER.putc((crc32Send>>16)&0x000000FF);
+    this->SER.putc((crc32Send>>8)&0x000000FF);
+    this->SER.putc((crc32Send)&0x000000FF);
+}
+
 void Emuart::setSamplingTime(float Ts){
     this->samplingTime = int(Ts*1000); //convert from s to ms
 }
@@ -72,6 +103,12 @@ unsigned int Emuart::getBufferSize(){
 
 void Emuart::clearInputBuffer(){
     this->fifo.clear(); //convert from s to ms
+}
+
+void Emuart::clearAll(){
+    this->command = 0;
+    this->dataLen = 0;
+    this->clearData();
 }
 
 void Emuart::clearData(){

@@ -1,7 +1,5 @@
 #include "emulatorLib.h"
 
-#define PI 3.14159265359
-
 AMT21::AMT21(RawSerial &_SER, uint8_t _ID, PinName _FLOW):
 SER(_SER),
 FLOW(_FLOW),

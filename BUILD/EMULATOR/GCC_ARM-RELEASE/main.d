@@ -259,9 +259,10 @@ BUILD\EMULATOR\GCC_ARM-RELEASE\main.o: main.cpp \
  mbed-os/platform/mbed_stats.h mbed-os/platform/Callback.h \
  mbed-os/platform/FunctionPointer.h mbed-os/platform/ScopedLock.h \
  mbed-os/platform/mbed_thread.h emulatorLib/emulatorPin.h \
- emulatorLib/emulatorLib.h Eigen/Dense.h Eigen/Core.h \
- Eigen/src/Core/util/DisableStupidWarnings.h Eigen/src/Core/util/Macros.h \
- Eigen/src/Core/util/MKL_support.h Eigen/src/Core/util/Constants.h \
+ emulatorLib/emulatorLib.h emulatorLib/emulatorPin.h Eigen/Dense.h \
+ Eigen/Core.h Eigen/src/Core/util/DisableStupidWarnings.h \
+ Eigen/src/Core/util/Macros.h Eigen/src/Core/util/MKL_support.h \
+ Eigen/src/Core/util/Constants.h \
  Eigen/src/Core/util/ForwardDeclarations.h Eigen/src/Core/util/Meta.h \
  Eigen/src/Core/util/StaticAssert.h Eigen/src/Core/util/XprHelper.h \
  Eigen/src/Core/util/Memory.h Eigen/src/Core/NumTraits.h \
@@ -348,4 +349,4 @@ BUILD\EMULATOR\GCC_ARM-RELEASE\main.o: main.cpp \
  Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  Eigen/src/Eigenvalues/./RealQZ.h \
  Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h emulatorLib/FIFO.hpp \
- CRC/crc.h emulatorLib/eeprom.h emulatorLib/FIFO.hpp
+ CRC/crc.h emulatorLib/eeprom.h emuPeripheral.h

@@ -2,39 +2,43 @@
 #define emulatorLib_h
 
 #include "mbed.h"
+#include "emulatorPin.h"
 #include <cstdint>
 #include <Eigen/Dense.h>
 #include "FIFO.hpp"
 #include "crc.h"
-#include <functional>
+#include "eeprom.h"
 #include <cmath>
+#define PI 3.14159265359
 
 using namespace Eigen;
 
 class Emuart{
     public:
-        Emuart(RawSerial &_SER, unsigned int bufferSize);
-        Emuart(RawSerial &_SER, unsigned int bufferSize, float samplingTime);
+        Emuart(RawSerial&, unsigned int);
+        Emuart(RawSerial&, unsigned int, float);
         ~Emuart();
         void            init(void);
         uint8_t         command;
         uint8_t         data[256]; //command will be added at dataLen+1 when calculate checksum
         uint8_t         dataLen; //Excluding start,dataLen
         void            clearData(void);
+        void            clearAll(void);
         int             parse(void);
+        void            write(uint8_t, uint8_t, uint8_t*);
+        void            write(uint8_t);
         void            clearInputBuffer(void);
         void            setBufferSize(unsigned int size);
         unsigned int    getBufferSize(void);
         void            setSamplingTime(float Ts);
         float           getSamplingTime(void);
-        void            rxCallback(void);
     private:
         RawSerial&      SER;
         FIFO<uint8_t>   fifo;
         unsigned int    bufferSize;
         unsigned int    samplingTime;
         uint32_t        checksum; //crc32
-        
+        void            rxCallback(void);
 };
 
 class JointState{
