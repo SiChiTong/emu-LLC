@@ -349,4 +349,5 @@ BUILD\EMULATOR\GCC_ARM-RELEASE\main.o: main.cpp \
  Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  Eigen/src/Eigenvalues/./RealQZ.h \
  Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h emulatorLib/FIFO.hpp \
- CRC/crc.h emulatorLib/eeprom.h emuPeripheral.h
+ CRC/crc.h emulatorLib/eeprom.h emulatorLib/emuPeripheral.h \
+ emulatorLib/emulatorLib.h

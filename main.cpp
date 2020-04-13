@@ -81,14 +81,12 @@ int main(){
 
     OUTPUT_ENABLE();
 
-    uint8_t a[7] = {1, 2, 3, 5, 8, 13, 21};
+    uint8_t a[7] = {'a', 'b', 'c', 5, 8, 13, 21};
     while(1){
         
         // uart4.printf("%.2f,%.4f\n",q6.encoder.position(), q6.encoder.velocity());
         emuart4.write(69, 7, a);
         // uart4.printf("%d\t%d\t%d\t%d\t%d\t%d\n",sizeof(a)/sizeof(a[0]), emuart4.command,emuart4.data[0],emuart4.data[1],emuart4.data[2], emuart4.data[emuart4.dataLen-1]);
-        ThisThread::sleep_for(200);
-        emuart4.write(33);
         ThisThread::sleep_for(200);
     }
 }
