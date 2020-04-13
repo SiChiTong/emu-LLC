@@ -13,6 +13,7 @@ class Emuart:
             self.ser = serial.Serial(port = port, baudrate = baudrate)
             a = ("{} is connected via {}".format(self.device, self.ser.portstr))
             cprint (' ','white','on_green',end = ' ')
+            self.ser.set_buffer_size(rx_size = 12800, tx_size = 12800)
             cprint (a,'green')
             self.status = 1
         except:
@@ -39,16 +40,36 @@ class Emuart:
     def close(self):
         self.ser.close()
 
+    def readRaw(self):
+        dataLen = 0
+        command = 0
+        read = lambda s: int.from_bytes(s.read(), byteorder=sys.byteorder)
+        if read(self.ser) == 0x7E:
+            if read(self.ser) == 0x77:
+                crc = [0]*4
+                command = read(self.ser) #get command
+                dataLen = read(self.ser) #get data length
+                data = [None]*dataLen
+                for i in range(dataLen+4):
+                    if i >= dataLen: crc[i-dataLen] = read(self.ser)
+                    else: data[i] = read(self.ser)
+                checksum = (crc[0]<<24)|(crc[1]<<16)|(crc[2]<<8)|crc[3] #combine crc32
+                expectedCrc32 = binascii.crc32(bytes(data+[command])) #calculate crc32
+                if expectedCrc32 != checksum: 
+                    return -1 #if the data is wrong
+                else: 
+                    return command, data #the data is right
+            else:
+                self.ser.read() #clear the buffer until it pass if statement
+            return 0 #it's not start byte 2
+        else:
+            self.ser.read() #clear the buffer until it pass if statement
+        return 0 #it's not start byte 1
+
     def read(self):
-        header = self.ser.read(4)
-        if header[0] == 0x7E and header[1] == 0x77:
-            command = header[2]
-            dataLen = header[3]
-            data = self.ser.read(dataLen)
-            expCrc32 = binascii.crc32(bytes(data+[command]))
-            crc32 = list(self.ser.read(4))
-            crc32 = (crc32[0]<<24)|(crc32[1]<<16)|(crc32[2]<<8)|crc32[3]
-        return int(command), list(data)
+        m,n = self.readRaw()
+        if m == 88: return bytes(n).decode()
+        elif m == 11: return 0
 
     def write(self, command, data):    
         header = [0x7E, 0x77, command, len(data)]
@@ -58,11 +79,10 @@ class Emuart:
         self.ser.write(bytes(data))
 
 
-
-
-
 if __name__ == "__main__":
     et = Emuart('COM7')
-    et.write(0x94,[0x01])
+    while 1:
+        n = et.read()
+        print (n)
 
 

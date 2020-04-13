@@ -42,20 +42,22 @@ void emuart4Parser(){
                 case 148:
                     ONBOARD_LEDS[3] = emuart4.data[0];
                     break;
+                
             }
         } else if (dataGood == -1){
-            _UART4.printf("\nERROR!\n");
-            // q6 = m2*63;
-            // q2 = m3*220;
+            emuart4.write(0x10);
         }
     }
 }
 
+// q6 = m2*63;
+// q2 = m3*220;
+
 void initializeMsg(){
     SPLASH();
     OUTPUT_DISABLE();
-    _UART4.printf("InternalTemp: %.2f C\n", INT_TEMP.read()*100);
-    _UART4.printf("SystemCoreClock: %ld Hz\n", SystemCoreClock);
+    _UART4.printf("InternalTemp: %.2f C\n", GET_CORETEMP());
+    _UART4.printf("SystemCoreClock: %ld Hz\n", GET_SYSCLK());
 }
 
 void startThread(){
@@ -81,11 +83,11 @@ int main(){
 
     OUTPUT_ENABLE();
 
-    uint8_t a[7] = {'a', 'b', 'c', 5, 8, 13, 21};
     while(1){
         
         // uart4.printf("%.2f,%.4f\n",q6.encoder.position(), q6.encoder.velocity());
-        emuart4.write(69, 7, a);
+        // emuart4.write(69, 11, hw);
+        emuart4.print("Hello World");
         // uart4.printf("%d\t%d\t%d\t%d\t%d\t%d\n",sizeof(a)/sizeof(a[0]), emuart4.command,emuart4.data[0],emuart4.data[1],emuart4.data[2], emuart4.data[emuart4.dataLen-1]);
         ThisThread::sleep_for(200);
     }

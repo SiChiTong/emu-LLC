@@ -85,6 +85,11 @@ void Emuart::write(uint8_t _command){
     this->SER.putc((crc32Send)&0x000000FF);
 }
 
+void Emuart::print(char* text){
+    uint8_t len = strlen(text);
+    this->write(88, len, (uint8_t*)text);
+}
+
 void Emuart::setSamplingTime(float Ts){
     this->samplingTime = int(Ts*1000); //convert from s to ms
 }

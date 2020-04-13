@@ -47,4 +47,12 @@ void SPLASH(){
     ONBOARD_LEDS = 0b0000;
 }
 
+int GET_SYSCLK(){
+    return SystemCoreClock;
+}
+
+float GET_CORETEMP(){
+    return INT_TEMP.read()*100.0f;
+}
+
 #endif

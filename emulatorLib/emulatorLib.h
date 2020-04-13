@@ -27,6 +27,7 @@ class Emuart{
         int             parse(void);
         void            write(uint8_t, uint8_t, uint8_t*);
         void            write(uint8_t);
+        void            print(char*);
         void            clearInputBuffer(void);
         void            setBufferSize(unsigned int size);
         unsigned int    getBufferSize(void);
