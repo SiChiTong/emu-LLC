@@ -50,8 +50,8 @@ uint16_t AMT21::read(uint8_t check){
     } else return cal_data;
 }
 
-double AMT21::readPosition(){
-    return (this->read(this->check)*double(this->ratio)*2*PI)/16383.0;
+double AMT21::readPosition(){ //rad/s
+    return (this->read(this->check)*this->ratio*2*PI)/16383.0;
 }
 
 void AMT21::setKdt(float num){
@@ -68,40 +68,58 @@ float AMT21::getSigmaW(){return this->sigma_w;}
 void AMT21::setSigmaA(float num){this->sigma_a = num;} 
 float AMT21::getSigmaA(){return this->sigma_a;}
 
-void AMT21::setCov1(float num){this->sigma_a = num;}; 
-float AMT21::getCov1(){return this->cov1;}
-
-void AMT21::setCov2(float num){this->sigma_a = num;}  
-float AMT21::getCov2(){return this->cov2;}
-
 void AMT21::kmfInit(){
-    this->Pp << this->cov1,0, 0,this->cov2;
+    this->p11 = 1.0f;
+    this->p12 = 0;
+    this->p21 = 0;
+    this->p22 = 1.0f;
     this->k_prev_pos = this->readPosition();
-    this->x_hat << this->readPosition(),0;
-    this->_x_hat << 0,0;
-    this->K << 0,0;
-    this->F << 1,0, this->kdt,1;
-    this->G << pow(this->kdt,2)/2,this->kdt;
-    this->H << 0,1;    
-    this->Q = pow(this->sigma_a, 2);
-    this->R = pow(this->sigma_w, 2);
+    this->x_hat_1 = this->readPosition();
+    this->x_hat_2 = 0;
+    this->k_wrap = 0;
     this->k_init = 1;
 }
 
 void AMT21::kmfEstimate(){
-    double position = this->readPosition();
-    float velocity = (position-this->k_prev_pos)/this->kdt;
-    this->_x_hat = this->F*this->x_hat;
-    float zp = this->H*this->x_hat;
-    float ye = velocity - zp;
-    this->Pp = this->F*this->Pp*this->F.transpose()+this->G*this->G.transpose()*this->Q;
-    this->K = this->Pp*this->H.transpose()*(1/(this->H*this->Pp*this->H.transpose()+this->R));
-    this->_x_hat += this->K*(ye);
-    this->Pp = (Matrix2d::Identity()-this->K*this->H)*this->Pp;
-    this->x_hat = this->_x_hat;
-    this->k_prev_pos = position;
-    this->state.positionIsAt(position*double(this->ratio));
-    this->state.velocityIsAt(this->x_hat(1,0)*this->ratio);
+    if (this->k_init){
+        float Q = pow(this->sigma_a, 2);
+        float R = pow(this->sigma_w, 2);
+        float x_hat_new_1, x_hat_new_2;
+        //Checking
+        double position = this->readPosition()+(2*PI*this->k_wrap);
+        //Wrapping
+        if ((position-this->k_prev_pos) > PI){
+            this->k_wrap--;
+            position = position-(2*PI*(this->k_wrap+1))+(2*PI*this->k_wrap);
+        }else if ((position-this->k_prev_pos) < -PI){
+                this->k_wrap++;
+                position = position-(2*PI*(this->k_wrap-1))+(2*PI*this->k_wrap);
+        }
+        float velocity = (position-this->k_prev_pos)/this->kdt;
+
+        //Filtering
+        float kdt4 = pow(abs(this->kdt), 4);
+        float kdt2 = pow(abs(this->kdt), 2); 
+        x_hat_new_1 = this->x_hat_1+this->x_hat_2*this->kdt;
+        x_hat_new_2 = 0+this->x_hat_2;
+        float ye = velocity-x_hat_new_2;
+        this->p11 = this->p11 + this->kdt*this->p21 + (Q*kdt4)/4 + (kdt2*(this->p12 + this->kdt*this->p22))/this->kdt;
+        this->p12 = this->p12 + this->kdt*this->p22 + (Q*this->kdt*kdt2)/2.0f;
+        this->p21 = (2*this->kdt*this->p21 + Q*kdt4 + 2*this->p22*kdt2)/(2*this->kdt);
+        this->p22 = Q*kdt2 + this->p22;
+        x_hat_new_1 = x_hat_new_1 + (this->p12*ye)/(R + this->p22);
+        x_hat_new_2 = x_hat_new_2 + (this->p22*ye)/(R + this->p22);
+        this->p11 = this->p11 - (this->p12*this->p21)/(R + this->p22);
+        this->p12 = this->p12 - (this->p12*this->p22)/(R + this->p22);
+        this->p21 = -this->p21*(this->p22/(R + this->p22) - 1.0f);
+        this->p22 = -this->p22*(this->p22/(R + this->p22) - 1.0f);
+        this->x_hat_1 = x_hat_new_1;
+        this->x_hat_2 = x_hat_new_2;
+
+        this->state.positionIsAt(position*this->ratio);
+        this->state.velocityIsAt(this->x_hat_2*this->ratio);
+        this->k_prev_pos = position;
+    }
 }
 
 double AMT21::position(){

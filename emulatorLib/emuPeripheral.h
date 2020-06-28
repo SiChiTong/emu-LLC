@@ -3,6 +3,7 @@
 #include "mbed.h"
 #include "emulatorPin.h"
 #include "emulatorLib.h"
+#include "SWO.h"
 
 #define PC_BAUDRATE         1000000
 #define AMT21_BAUDRATE      115200
@@ -16,6 +17,7 @@ BusOut      ONBOARD_LEDS(LD1, LD2, LD3, LD4);
 RawSerial   _UART4(UART4_TX, UART4_RX, PC_BAUDRATE);
 RawSerial   _RS485_1(UART5_TX, UART5_RX, AMT21_BAUDRATE);
 RawSerial   _RS485_2(UART2_TX, UART2_RX, AMT21_BAUDRATE);
+SWO_Channel SWO("channel");
 
 DigitalOut  OUTPUT_ENABLE_1(OE1);
 DigitalOut  OUTPUT_ENABLE_2(OE2);
