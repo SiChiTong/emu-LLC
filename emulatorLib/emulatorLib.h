@@ -12,8 +12,8 @@
 
 class Emuart{
     public:
-        Emuart(RawSerial&, unsigned int);
-        Emuart(RawSerial&, unsigned int, float);
+        Emuart(RawSerial& serialObject, unsigned int bufferSize);
+        Emuart(RawSerial& serialObject, unsigned int bufferSize, float SamplingTime);
         ~Emuart();
         void            init(void);
         uint8_t         command;
@@ -22,9 +22,9 @@ class Emuart{
         void            clearData(void);
         void            clearAll(void);
         int             parse(void);
-        void            write(uint8_t, uint8_t, uint8_t*);
-        void            write(uint8_t);
-        void            print(char*);
+        void            write(uint8_t command, uint8_t dataLen, uint8_t* dataBuffer);
+        void            write(uint8_t command);
+        void            print(char* string);
         void            clearInputBuffer(void);
         void            setBufferSize(unsigned int size);
         unsigned int    getBufferSize(void);
@@ -58,20 +58,22 @@ class JointState{
 
 class Stepper {
     public:
-        Stepper(PinName, PinName, PinName);
+        Stepper(PinName pulsePin, PinName directionPin, PinName enablePin);
         ~Stepper();
         void        enable(void);
         void        disable(void);
-        void        setFrequency(float);
-        void        setFrequency(int);
-        void        setMaxFrequency(float);
-        void        setRatio(float);
-        void        setMicro(uint8_t);
-        void        ols(float); //open-loop speed rad/s
+        void        setFrequency(float frequency);
+        void        setFrequency(int frequency);
+        void        setMaxFrequency(float max_frequency);
+        void        setRatio(float reducingRatio);
+        void        setMicro(uint8_t microstepDen);
+        void        setDir(int8_t setDefaultDirection);
+        void        ols(float speed); //open-loop speed rad/s
     private:
         DigitalOut  EN;
         DigitalOut  DIR;
         PwmOut      STEP;
+        int8_t      dir;
         float       frequency; //Hz
         float       max_frequency;
         float       microstep = 1;
@@ -86,7 +88,7 @@ class AMT21{
         JointState  state;
         void        setID(uint8_t);
         uint8_t     getID();
-        void        setChecksum(bool);
+        void        setChecksum(bool checksumRequirement);
         bool        getChecksum();
         uint16_t    read();
         uint16_t    read(uint8_t);
@@ -94,11 +96,11 @@ class AMT21{
         double      position();     //Filtered position
         float       velocity();     //Filtered position
         //Kalman Filter
-        void        setKdt(float);
+        void        setKdt(float kalmanDt);
         float       getKdt();
-        void        setSigmaW(float);
+        void        setSigmaW(float covariance);
         float       getSigmaW();
-        void        setSigmaA(float);
+        void        setSigmaA(float covariance);
         float       getSigmaA();
         void        kmfInit();
         void        kmfEstimate();
@@ -131,8 +133,8 @@ class Controller{
         float       getKi(void);
         float       getKd(void);
         void        init();
-        float       update(float, float);
-        void        setSat(float, float);
+        float       update(float setPoint, float feedback);
+        void        setSat(float lb, float ub);
         void        unsetSat();
     private:
         float       Kp;
@@ -143,7 +145,7 @@ class Controller{
         float       sat = 0;
         float       u_lim;
         float       l_lim;
-        float       saturate(float);
+        float       saturate(float saturation);
 };
 
 class Trajectory {
@@ -173,18 +175,18 @@ class Trajectory {
 
 class Actuator {
     public:
-        Actuator(PinName, PinName, PinName, RawSerial&, uint8_t, PinName);
-        Actuator(PinName, PinName, PinName, RawSerial&, uint8_t, PinName, float, float, float);
+        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin);
+        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin, float Kp, float Ki, float Kd);
         ~Actuator();
         Stepper     stepper;
         AMT21       encoder;
         Controller  pcon;
         Trajectory  trajectory;
         float       at();
-        void        operator=(float);
-        void        operator=(int);
-        float       update(float);
-        void        setPconSat(float, float);
+        void        operator=(float speed);
+        void        operator=(int speed);
+        float       update(float setPoint);
+        void        setPconSat(float lb, float ub);
         void        unsetPconSat();
     // private:
 };

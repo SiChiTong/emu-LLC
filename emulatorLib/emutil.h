@@ -66,6 +66,10 @@ float unpack754_32( uint32_t floatingToIntValue ){
 }
 //Andrea Ricchetti The Code Project Open License (CPOL) 1.02  22 Jan 2019
 
-
+uint32_t get_float_bits(float f) {
+    uint32_t bits;
+    memcpy(&bits, &f, sizeof f);
+    return bits;
+}
 
 #endif
