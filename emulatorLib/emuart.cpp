@@ -35,7 +35,7 @@ int Emuart::parse(){
                 uint8_t crc[4];
                 this->command = this->fifo.get(); //get command
                 this->dataLen = this->fifo.get(); //get data length
-                for (uint8_t i = 0; i <= this->dataLen+3; i++){ 
+                for (uint16_t i = 0; i <= this->dataLen+3; i++){ 
                     if (i >= this->dataLen) crc[i-this->dataLen] = this->fifo.get();
                     else this->data[i] = this->fifo.get();
                 }
@@ -44,14 +44,19 @@ int Emuart::parse(){
                 uint32_t expectedCrc32 = crc32((char*)this->data,this->dataLen+1); //calculate crc32
                 if (expectedCrc32 != this->checksum) return -1; //if the data is wrong
                 else return 1; //the data is right
-            } else this->fifo.get(); //clear the buffer until it pass if statement
+            } else {
+                this->fifo.clear(); //clear the buffer until it pass if statement
+            }
             return 0; //it's not start byte 2
-        }else this->fifo.get(); //clear the buffer until it pass if statement
+        }else {
+            this->fifo.clear(); //clear the buffer until it pass if statement
+        }
         return 0; //it's not start byte 1
     } else {
         ThisThread::sleep_for(this->samplingTime);
         return 0; //no data aviable
     }
+    
 }
 
 void Emuart::write(uint8_t _command, uint8_t _dataLen, uint8_t* _dataBuffer){

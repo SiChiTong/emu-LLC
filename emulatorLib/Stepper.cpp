@@ -8,7 +8,6 @@ EN(_EN){
     this->setMaxFrequency(10000000.0f);
     this->setFrequency(0.0f);
     this->DIR = 1;
-    this->dir = 1;
 }
 
 Stepper::~Stepper(){
@@ -17,10 +16,6 @@ Stepper::~Stepper(){
 
 void Stepper::setMaxFrequency(float _frequency){
     this->max_frequency = _frequency;
-}
-
-void Stepper::setDir(int8_t direction = 1){
-    this->dir = direction;
 }
 
 void Stepper::enable(void){
@@ -41,30 +36,16 @@ void Stepper::setFrequency(float _frequency) {
     else
         f = _frequency;
 
-    if (dir == 1){
-        if (this->frequency > 0.001f){
-            this->STEP.write(0.50f);
-            this->DIR = 1;
-            this->STEP.period(1/f);
-        } else if (this->frequency < 0.001f){
-            this->STEP.write(0.50f);
-            this->DIR = 0; 
-            this->STEP.period(1/abs(f));
-        }else{
-            this->STEP.write(0.0f);
-        }
-    } else if (dir = -1){
-        if (this->frequency > 0.001f){
-            this->STEP.write(0.50f);
-            this->DIR = 0;
-            this->STEP.period(1/f);
-        } else if (this->frequency < 0.001f){
-            this->STEP.write(0.50f);
-            this->DIR = 1; 
-            this->STEP.period(1/abs(f));
-        }else{
-            this->STEP.write(0.0f);
-        }
+    if (this->frequency > 0.001f){
+        this->STEP.write(0.50f);
+        this->DIR = 1;
+        this->STEP.period(1/f);
+    } else if (this->frequency < 0.001f){
+        this->STEP.write(0.50f);
+        this->DIR = 0; 
+        this->STEP.period(1/abs(f));
+    }else{
+        this->STEP.write(0.0f);
     }
 }
 

@@ -23,6 +23,15 @@ DigitalOut  OUTPUT_ENABLE_1(OE1);
 DigitalOut  OUTPUT_ENABLE_2(OE2);
 DigitalOut  OUTPUT_ENABLE_3(OE3);
 
+DigitalOut od1(OD1);
+DigitalOut od2(OD2);
+DigitalOut od3(OD3);
+DigitalOut od4(OD4);
+DigitalOut od5(OD5);
+DigitalOut od6(OD6);
+DigitalOut od7(OD7);
+DigitalOut od8(OD8);
+
 void OUTPUT_DISABLE(){
     OUTPUT_ENABLE_1 = 0;
     OUTPUT_ENABLE_2 = 0;

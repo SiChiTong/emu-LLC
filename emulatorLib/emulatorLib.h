@@ -4,7 +4,9 @@
 #include "mbed.h"
 #include "emulatorPin.h"
 #include <cstdint>
+#include <cstring>
 #include "FIFO.hpp"
+#include <deque> 
 #include "crc.h"
 #include "eeprom.h"
 #include <cmath>
@@ -87,11 +89,12 @@ class AMT21{
         ~AMT21();
         JointState  state;
         void        setID(uint8_t);
+        void        setRatio(float ratio);
         uint8_t     getID();
         void        setChecksum(bool checksumRequirement);
         bool        getChecksum();
-        uint16_t    read();
-        uint16_t    read(uint8_t);
+        int16_t    read();
+        int16_t    read(uint8_t);
         double      readPosition();
         double      position();     //Filtered position
         float       velocity();     //Filtered position
@@ -104,14 +107,16 @@ class AMT21{
         float       getSigmaA();
         void        kmfInit();
         void        kmfEstimate();
+        bool        continuous = 0;
     private:
         RawSerial&  SER;
         DigitalOut  FLOW;
         uint8_t     ID;
         float       ratio = 1.0f;   //Velocity ratio between encoder and destination
         bool        check = 1;      //Allow to calculate checksum
-        //Kalman Filter
-        int32_t     k_wrap = 0;     
+        int32_t     k_wrap = 0;
+        int8_t      initial_pose = 0;
+        //Kalman Filter     
         bool        k_init = 0;
         float       p11, p12, p21, p22;
         float       x_hat_1, x_hat_2;
@@ -132,8 +137,9 @@ class Controller{
         float       getKp(void);
         float       getKi(void);
         float       getKd(void);
-        void        init();
-        float       update(float setPoint, float feedback);
+        void        init(void);
+        float       updatePID(float setPoint, float feedback);
+        float       updatePIDF(float setPoint, float feedforward, float feedback);
         void        setSat(float lb, float ub);
         void        unsetSat();
     private:
@@ -153,7 +159,10 @@ class Trajectory {
         Trajectory();
         ~Trajectory();
         void        setGoal(float qi, float qf, float vi, float vf, float duration);
-        float       update(float time);
+        void        setViaPoints(std::deque <float> _qr, std::deque <float> _vr, std::deque <float> _Tvec);
+        float       getPosTraj(float time);
+        float       getVelTraj(float time);
+        float       getTime();
         bool        reached();
         float       getC0();
         float       getC1();
@@ -163,32 +172,38 @@ class Trajectory {
         float       getQf();
         float       getVi();
         float       getVf();
+        uint8_t     pointLeft();
         float       getDuration();
         float       step(float stop_at);
     private:
-        float       qi, qf;
-        float       vi, vf;
-        float       c0,c1,c2,c3;
-        float       T;
-        bool        atGoal;
+        void                        nextSub();
+        float                       qi, qf;
+        float                       vi, vf;
+        float                       c0,c1,c2,c3, T;
+        std::deque <float>          qr, vr;
+        std::deque <float>          Tvec;
+        float                       Tlat;
+        bool                        atGoal;
 };
 
 class Actuator {
     public:
-        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin);
-        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin, float Kp, float Ki, float Kd);
+        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, int8_t defaultDirection, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin);
+        Actuator(PinName pulsePin, PinName directionPin, PinName enablePin, int8_t defaultDirection, RawSerial& serialObject, uint8_t encoderID, PinName flowControlPin, float Kp, float Ki, float Kd);
         ~Actuator();
         Stepper     stepper;
         AMT21       encoder;
         Controller  pcon;
         Trajectory  trajectory;
         float       at();
+        float       vat();
         void        operator=(float speed);
         void        operator=(int speed);
-        float       update(float setPoint);
+        float       update(float setPoint, float feedforward, float feedback, uint8_t controllerType);
         void        setPconSat(float lb, float ub);
         void        unsetPconSat();
-    // private:
+    private:
+        int8_t      dir;
 };
 
 #endif

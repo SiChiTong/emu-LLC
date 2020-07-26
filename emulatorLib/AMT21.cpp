@@ -18,7 +18,7 @@ uint8_t AMT21::getID(){return this->ID;}
 void AMT21::setChecksum(bool isChk){this->check = isChk;}
 bool AMT21::getChecksum(){return this->check;}
 
-uint16_t AMT21::read(){
+int16_t AMT21::read(){
     this->FLOW = 1;
     this->SER.putc(this->ID);
     wait_us(75);
@@ -26,11 +26,11 @@ uint16_t AMT21::read(){
     // overwatch.flags_set(0x01);
     uint8_t lb = this->SER.getc();
     uint8_t hb = this->SER.getc();
-    uint16_t cal_data = lb|((hb&0x3F)<<8);
+    int16_t cal_data = lb|((hb&0x3F)<<8);
     return cal_data;
 }
 
-uint16_t AMT21::read(uint8_t check){
+int16_t AMT21::read(uint8_t check){
     this->FLOW = 1;
     this->SER.putc(this->ID);
     wait_us(75);
@@ -38,7 +38,7 @@ uint16_t AMT21::read(uint8_t check){
     // overwatch.flags_set(0x01);
     uint8_t lb = this->SER.getc();
     uint8_t hb = this->SER.getc();
-    uint16_t cal_data = lb|((hb&0x3F)<<8);
+    int16_t cal_data = lb|((hb&0x3F)<<8);
     if (check){
         uint8_t checksum_read = ((hb & 0x80)>>6) | ((hb & 0x40)>>6);
         uint8_t checksum_cal = this->checksum(cal_data);
@@ -52,6 +52,10 @@ uint16_t AMT21::read(uint8_t check){
 
 double AMT21::readPosition(){ //rad/s
     return (this->read(this->check)*this->ratio*2*PI)/16383.0;
+}
+
+void AMT21::setRatio(float _ratio){
+    this->ratio = _ratio;
 }
 
 void AMT21::setKdt(float num){
@@ -74,9 +78,13 @@ void AMT21::kmfInit(){
     this->p21 = 0;
     this->p22 = 1.0f;
     this->k_prev_pos = this->readPosition();
-    this->x_hat_1 = this->readPosition();
+    this->x_hat_1 = this->k_prev_pos;
     this->x_hat_2 = 0;
-    this->k_wrap = 0;
+    // this->k_wrap = 0;
+    if (this->k_prev_pos < PI)
+        this->k_wrap = 0;
+    else
+        this->k_wrap = 1;
     this->k_init = 1;
 }
 
@@ -86,15 +94,20 @@ void AMT21::kmfEstimate(){
         float R = pow(this->sigma_w, 2);
         float x_hat_new_1, x_hat_new_2;
         //Checking
-        double position = this->readPosition()+(2*PI*this->k_wrap);
+        double position = this->readPosition();
         //Wrapping
-        if ((position-this->k_prev_pos) > PI){
-            this->k_wrap--;
-            position = position-(2*PI*(this->k_wrap+1))+(2*PI*this->k_wrap);
-        }else if ((position-this->k_prev_pos) < -PI){
+        if (this->continuous){
+            position += (2*PI*this->k_wrap);
+            // position += (this->initial_pose*-2*PI);
+            if ((position-this->k_prev_pos) > PI){
+                this->k_wrap--;
+                position = position-(2*PI*(this->k_wrap+1))+(2*PI*this->k_wrap);
+            }else if ((position-this->k_prev_pos) < -PI){
                 this->k_wrap++;
                 position = position-(2*PI*(this->k_wrap-1))+(2*PI*this->k_wrap);
+            }
         }
+
         float velocity = (position-this->k_prev_pos)/this->kdt;
 
         //Filtering

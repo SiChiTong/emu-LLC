@@ -6,6 +6,7 @@ Controller::Controller(float _Kp, float _Ki, float _Kd){
     this->setKd(_Kd);
     this->isInit = 0;
 }
+
 Controller::~Controller(){};
 
 void Controller::setKp(float _Kp){this->Kp = _Kp;}
@@ -21,7 +22,7 @@ void Controller::init(){
     this->isInit = 1;
 }
 
-float Controller::update(float setpoint, float feedback){
+float Controller::updatePID(float setpoint, float feedback){
     float u;
     if (this->isInit){
         float e = setpoint-feedback;
@@ -31,6 +32,23 @@ float Controller::update(float setpoint, float feedback){
             u = this->saturate(this->Kp*e + i_term + this->Kd*(e-this->p));
         else
             u = this->Kp*e + i_term + this->Kd*(e-this->p);
+        this->p = e;
+    } else {
+        u = 0;
+    }
+    return u;
+}
+
+float Controller::updatePIDF(float setpoint, float vff, float feedback){
+    float u;
+    if (this->isInit){
+        float e = setpoint-feedback;
+        this->s += e;
+        float i_term = this->Ki*this->s;
+        if (this->sat)
+            u = this->saturate(this->Kp*e + i_term + this->Kd*(e-this->p) + vff);
+        else
+            u = this->Kp*e + i_term + this->Kd*(e-this->p) + vff;
         this->p = e;
     } else {
         u = 0;
