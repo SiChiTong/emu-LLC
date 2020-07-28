@@ -13,7 +13,6 @@
 #define EMUART_BUFFER_SIZE      2048
 
 Emuart emuart4(_UART4, EMUART_BUFFER_SIZE, 0.05f);
-DigitalOut enc1Flow(FLOW_CH1);
 Actuator q1(Y15, Y10, Y9, -1, //13
             _RS485_1, 0x1C, FLOW_CH1, 
             2.0f, 0.0, 0.0);
@@ -34,7 +33,6 @@ Actuator diffB(Y14, Y18, Y21, 2, //14
             1.5f, 0.00f, 0.0f);
 DigitalIn EMS(PE_10);
 DigitalOut gripper_flow(FLOW_CH2);
-// //can't use Y8,Y12,Y13
 
 //State
 bool m1, m2, m3, m4, mA, mB;
@@ -46,9 +44,13 @@ float q5_lat, q6_lat, q5_lvat, q6_lvat;
 bool initialPosLock = 1;
 
 Thread idleThread(osPriorityNormal);
-Thread errorHandle(osPriorityHigh);
 Thread rxMessageParser(osPriorityNormal2);
 Ticker enct, js_pub;
+
+void emuart4Parser();
+void jointStates();
+void grip();
+void release();
 
 void idleRoutine(){
     for (;;){
@@ -71,8 +73,6 @@ void initializeMsg(){
     _UART4.printf("InternalTemp:  %.2f C\r\n", GET_CORETEMP());
     _UART4.printf("+++++++++++++++++++++++++++++++\r\n");
 }
-
-void emuart4Parser();
 
 void startThread(){
     emuart4.init();
@@ -138,35 +138,12 @@ void actuatorSetup(){
 
 }
 
-void grip(){
-    gripper_flow = 1;
-    _RS485_2.putc(0x70);
-    wait_us(75);
-    gripper_flow = 0;
-}
-
-void release(){
-    gripper_flow = 1;
-    _RS485_2.putc(0x74);
-    wait_us(75);
-    gripper_flow = 0;
-}
-
 void controlLoop(){
-    od1 = od1_on;
-    od2 = od2_on;
-    od3 = od3_on;
-    od4 = od4_on;
-    od5 = od5_on;
-    od6 = od6_on;
-    od7 = od7_on;
-    od8 = od8_on;
+    od1 = od1_on; od2 = od2_on; od3 = od3_on; od4 = od4_on; 
+    od5 = od5_on; od6 = od6_on; od7 = od7_on; od8 = od8_on;
     wait_us(500);
-    if (g_on){
-        grip();
-    }else{
-        release();
-    }
+    if (g_on){grip();}
+    else {release();}
     wait_us(1000);
     q1.encoder.kmfEstimate();
     q4.encoder.kmfEstimate();
@@ -176,8 +153,7 @@ void controlLoop(){
     wait_us(1000);
     q3.encoder.kmfEstimate();
     diffB.encoder.kmfEstimate();
-    // qt_lat = diffA.at();
-    // qt2_lat = diffB.at();
+
     q5_lat = (diffB.at() - diffA.at())/2.0f;
     q6_lat = q4.at()+(-diffB.at() - diffA.at())/2.0f;
     q5_lvat = (diffB.vat() - diffA.vat())/2.0f;
@@ -202,15 +178,9 @@ void controlLoop(){
             initialPosLock = 0;
         }
 
-        // bool reached_condition = q1.trajectory.reached() && q2.trajectory.reached() && q3.trajectory.reached() && q4.trajectory.reached() && diffA.trajectory.reached() && diffB.trajectory.reached();
         if (q1.trajectory.reached()){
             tau.reset();
-            v1_traj = 0;
-            v2_traj = 0;
-            v3_traj = 0;
-            v4_traj = 0;
-            vA_traj = 0;
-            vB_traj = 0;
+            v1_traj = 0; v2_traj = 0; v3_traj = 0; v4_traj = 0; vA_traj = 0; vB_traj = 0;
             q1_traj = q1.trajectory.getQf();
             q2_traj = q2.trajectory.getQf();
             q3_traj = q3.trajectory.getQf();
@@ -249,46 +219,6 @@ void controlLoop(){
     }
 }
 
-void jointStates(){
-    uint8_t status1 = 0;
-    uint8_t status2 = 0;
-    status1 = (m1<<7) | (m2<<6) | (m3<<5) | (m4<<4) | (mA<<3) | (mB<<2) | (g_on<<1);
-    status2 = (od1_on<<7) | (od2_on<<6) | (od3_on<<5) | (od4_on<<4) | (od5_on<<3) | (od6_on<<2) | (od7_on<<1) | od8_on;
-    int32_t q1_pos = get_float_bits(q1.at());
-    int32_t q2_pos = get_float_bits(q2.at());
-    int32_t q3_pos = get_float_bits(q3.at());
-    int32_t q4_pos = get_float_bits(q4.at());
-    int32_t q5_pos = get_float_bits(q5_lat);
-    int32_t q6_pos = get_float_bits(q6_lat);
-    int32_t q1_vel = get_float_bits(q1.vat());
-    int32_t q2_vel = get_float_bits(q2.vat());
-    int32_t q3_vel = get_float_bits(q3.vat());
-    int32_t q4_vel = get_float_bits(q4.vat());
-    int32_t q5_vel = get_float_bits(q5_lvat);
-    int32_t q6_vel = get_float_bits(q6_lvat);
-    uint8_t simpleJs[26] = {q1_pos>>24, (q1_pos>>16)&0xFF, (q1_pos>>8)&0xFF, q1_pos&0xFF, 
-                            q2_pos>>24, (q2_pos>>16)&0xFF, (q2_pos>>8)&0xFF, q2_pos&0xFF,
-                            q3_pos>>24, (q3_pos>>16)&0xFF, (q3_pos>>8)&0xFF, q3_pos&0xFF,
-                            q4_pos>>24, (q4_pos>>16)&0xFF, (q4_pos>>8)&0xFF, q4_pos&0xFF,
-                            q5_pos>>24, (q5_pos>>16)&0xFF, (q5_pos>>8)&0xFF, q5_pos&0xFF, 
-                            q6_pos>>24, (q6_pos>>16)&0xFF, (q6_pos>>8)&0xFF, q6_pos&0xFF,
-                            status1, status2};
-    uint8_t fullJs[50] = {q1_pos>>24, (q1_pos>>16)&0xFF, (q1_pos>>8)&0xFF, q1_pos&0xFF, 
-                            q2_pos>>24, (q2_pos>>16)&0xFF, (q2_pos>>8)&0xFF, q2_pos&0xFF, 
-                            q3_pos>>24, (q3_pos>>16)&0xFF, (q3_pos>>8)&0xFF, q3_pos&0xFF, 
-                            q4_pos>>24, (q4_pos>>16)&0xFF, (q4_pos>>8)&0xFF, q4_pos&0xFF,
-                            q5_pos>>24, (q5_pos>>16)&0xFF, (q5_pos>>8)&0xFF, q5_pos&0xFF, 
-                            q6_pos>>24, (q6_pos>>16)&0xFF, (q6_pos>>8)&0xFF, q6_pos&0xFF,
-                            q1_vel>>24, (q1_vel>>16)&0xFF, (q1_vel>>8)&0xFF, q1_vel&0xFF,
-                            q2_vel>>24, (q2_vel>>16)&0xFF, (q2_vel>>8)&0xFF, q2_vel&0xFF, 
-                            q3_vel>>24, (q3_vel>>16)&0xFF, (q3_vel>>8)&0xFF, q3_vel&0xFF, 
-                            q4_vel>>24, (q4_vel>>16)&0xFF, (q4_vel>>8)&0xFF, q4_vel&0xFF,
-                            q5_vel>>24, (q5_vel>>16)&0xFF, (q5_vel>>8)&0xFF, q5_vel&0xFF, 
-                            q6_vel>>24, (q6_vel>>16)&0xFF, (q6_vel>>8)&0xFF, q6_vel&0xFF,
-                            status1, status2};
-    emuart4.write(0x0A, 26, simpleJs);
-}
-
 int main(){
     initializeMsg();
     startThread();
@@ -300,25 +230,7 @@ int main(){
     wait(0.1);
     js_pub.attach(&jointStates, JOINTSTATE_SAMPLING_T);
 
-
-    // wait(1);
-    // std::deque <float> tv {20, 30};
-    // std::deque <float> vv  {0, 0, 0};
-    // std::deque <float> qt1 {0, 1, 0};
-    // std::deque <float> qt2 {0, -PI/2.0f, 0};
-    // std::deque <float> qt3 {0, PI/2.0f, 0};
-    // std::deque <float> qt4 {0, 0, 0};
-    // std::deque <float> qt5 {0, 0, 0};
-    // std::deque <float> qt6 {0, 0, 0};
-    // q1.trajectory.setViaPoints(qt1, vv, tv);
-    // q2.trajectory.setViaPoints(qt2, vv, tv);
-    // q3.trajectory.setViaPoints(qt3, vv, tv);
-    // q4.trajectory.setViaPoints(qt4, vv, tv);
-    // diffA.trajectory.setViaPoints(qt5, vv, tv);
-    // diffB.trajectory.setViaPoints(qt6, vv, tv);
-
-    while(1){
-    }
+    while(1){}
 }
 
 void emuart4Parser(){
@@ -327,7 +239,6 @@ void emuart4Parser(){
     float i1, i2, i3, i4, i5, i6;
     uint8_t num_viapoints;
     std::deque <float> points[13]; //vps1, vps2, vps3, vps4, vps5, vps6, vvps1, vvps2, vvps3, vvps4, vvps5, vvps6, tvps;
-    std::deque <float> diffA_p_handle, diffB_p_handle, diffA_v_handle, diffB_v_handle;
     for(;;){
         dataGood = emuart4.parse();
         if (dataGood == 1){
@@ -357,58 +268,46 @@ void emuart4Parser(){
                     od8_on = emuart4.data[0];
                     break;
                 case 31:
-                    if (emuart4.data[0]){
+                    m1 = emuart4.data[0];
+                    if (m1)
                         q1.stepper.enable();
-                        m1 = 1;
-                    }else{
+                    else
                         q1.stepper.disable();
-                        m1 = 0;
-                    }
                     break;
                 case 32:
-                    if (emuart4.data[0]){
+                    m2 = emuart4.data[0];
+                    if (m2)
                         q2.stepper.enable();
-                        m2 = 1;
-                    }else{
+                    else
                         q2.stepper.disable();
-                        m2 = 0;
-                    }
                     break;
                 case 33:
-                    if (emuart4.data[0]){
+                    m3 = emuart4.data[0];
+                    if (m3)
                         q3.stepper.enable();
-                        m3 = 1;
-                    }else{
+                    else
                         q3.stepper.disable();
-                        m3 = 0;
-                    }
                     break;
                 case 34:
-                    if (emuart4.data[0]){
+                    m4 = emuart4.data[0];
+                    if (m4)
                         q4.stepper.enable();
-                        m4 = 1;
-                    }else{
+                    else
                         q4.stepper.disable();
-                        m4 = 0;
-                    }
                     break;
                 case 35:
-                    if (emuart4.data[0]){
+                    mA = emuart4.data[0];
+                    if (mA)
                         diffA.stepper.enable();
-                        mA = 1;
-                    }else{
+                    else
                         diffA.stepper.disable();
-                        mA = 0;
-                    }
                     break;
                 case 36:
-                    if (emuart4.data[0]){
+                    mB = emuart4.data[0];
+                    if (mB)
                         diffB.stepper.enable();
-                        mB = 1;
-                    }else{
+                    else
                         diffB.stepper.disable();
-                        mB = 0;
-                    }
                     break;
                 case 41:
                     olSpeed = unpack754_32((emuart4.data[0]<<24)|(emuart4.data[1]<<16)|(emuart4.data[2]<<8)|emuart4.data[3]);
@@ -585,21 +484,12 @@ void emuart4Parser(){
                     diffB.trajectory.setGoal(diffB.at(), i4+i5-i6, 0, 0, travelDuration);
                     break;
                 case 82:
-                    // diffA_p_handle.clear();
-                    // diffA_v_handle.clear();
-                    // diffB_p_handle.clear();
-                    // diffB_v_handle.clear();
                     num_viapoints = (emuart4.dataLen)/52;
                     for (int i = 0; i < 13; i++){
                         points[i].clear();
-                        for (int j = 0; j < num_viapoints; j++){
+                        for (int j = 0; j < num_viapoints; j++)
                             points[i].push_back(unpack754_32((emuart4.data[(i*4*num_viapoints)+(4*j)+0]<<24)|(emuart4.data[(i*4*num_viapoints)+(4*j)+1]<<16)|(emuart4.data[(i*4*num_viapoints)+(4*j)+2]<<8)|emuart4.data[(i*4*num_viapoints)+(4*j)+3]));
-                        }
                     }
-                    // points[12].clear();
-                    // for (int j = 0; j < num_viapoints-1; j++){
-                    //     points[12].push_back(unpack754_32((emuart4.data[(12*4*num_viapoints)+(4*j)+0]<<24)|(emuart4.data[(12*4*num_viapoints)+(4*j)+1]<<16)|(emuart4.data[(12*4*num_viapoints)+(4*j)+2]<<8)|emuart4.data[(12*4*num_viapoints)+(4*j)+3]));
-                    // }
                     
                     points[0].push_front(q1.at());
                     points[1].push_front(q2.at());
@@ -614,16 +504,6 @@ void emuart4Parser(){
                     points[10].push_front(0);
                     points[11].push_front(0);
                     
-                    // diffA_p_handle.push_back(diffA.at());
-                    // diffB_p_handle.push_back(diffB.at());
-                    // diffA_v_handle.push_back(0);
-                    // diffB_v_handle.push_back(0);
-                    // for (int i = 1; i < num_viapoints; i++){
-                    //     diffA_p_handle.push_back(points[3].at(i)-points[4].at(i)-points[5].at(i));
-                    //     diffB_p_handle.push_back(points[3].at(i)+points[4].at(i)-points[5].at(i));
-                    //     diffA_v_handle.push_back(points[9].at(i)-points[10].at(i)-points[11].at(i));
-                    //     diffB_v_handle.push_back(points[9].at(i)+points[10].at(i)-points[11].at(i));
-                    // }
                     q1.trajectory.setViaPoints(points[0], points[6], points[12]);
                     q2.trajectory.setViaPoints(points[1], points[7], points[12]);
                     q3.trajectory.setViaPoints(points[2], points[8], points[12]);
@@ -644,6 +524,59 @@ void emuart4Parser(){
         } else if (dataGood == -1){
             // emuart4.write(0x10);
         }
-        // ThisThread::sleep_for(0.005f);
     }
+}
+
+void jointStates(){
+    uint8_t status1 = 0;
+    uint8_t status2 = 0;
+    status1 = (m1<<7) | (m2<<6) | (m3<<5) | (m4<<4) | (mA<<3) | (mB<<2) | (g_on<<1);
+    status2 = (od1_on<<7) | (od2_on<<6) | (od3_on<<5) | (od4_on<<4) | (od5_on<<3) | (od6_on<<2) | (od7_on<<1) | od8_on;
+    int32_t q1_pos = get_float_bits(q1.at());
+    int32_t q2_pos = get_float_bits(q2.at());
+    int32_t q3_pos = get_float_bits(q3.at());
+    int32_t q4_pos = get_float_bits(q4.at());
+    int32_t q5_pos = get_float_bits(q5_lat);
+    int32_t q6_pos = get_float_bits(q6_lat);
+    int32_t q1_vel = get_float_bits(q1.vat());
+    int32_t q2_vel = get_float_bits(q2.vat());
+    int32_t q3_vel = get_float_bits(q3.vat());
+    int32_t q4_vel = get_float_bits(q4.vat());
+    int32_t q5_vel = get_float_bits(q5_lvat);
+    int32_t q6_vel = get_float_bits(q6_lvat);
+    uint8_t simpleJs[26] = {q1_pos>>24, (q1_pos>>16)&0xFF, (q1_pos>>8)&0xFF, q1_pos&0xFF, 
+                            q2_pos>>24, (q2_pos>>16)&0xFF, (q2_pos>>8)&0xFF, q2_pos&0xFF,
+                            q3_pos>>24, (q3_pos>>16)&0xFF, (q3_pos>>8)&0xFF, q3_pos&0xFF,
+                            q4_pos>>24, (q4_pos>>16)&0xFF, (q4_pos>>8)&0xFF, q4_pos&0xFF,
+                            q5_pos>>24, (q5_pos>>16)&0xFF, (q5_pos>>8)&0xFF, q5_pos&0xFF, 
+                            q6_pos>>24, (q6_pos>>16)&0xFF, (q6_pos>>8)&0xFF, q6_pos&0xFF,
+                            status1, status2};
+    uint8_t fullJs[50] = {q1_pos>>24, (q1_pos>>16)&0xFF, (q1_pos>>8)&0xFF, q1_pos&0xFF, 
+                            q2_pos>>24, (q2_pos>>16)&0xFF, (q2_pos>>8)&0xFF, q2_pos&0xFF, 
+                            q3_pos>>24, (q3_pos>>16)&0xFF, (q3_pos>>8)&0xFF, q3_pos&0xFF, 
+                            q4_pos>>24, (q4_pos>>16)&0xFF, (q4_pos>>8)&0xFF, q4_pos&0xFF,
+                            q5_pos>>24, (q5_pos>>16)&0xFF, (q5_pos>>8)&0xFF, q5_pos&0xFF, 
+                            q6_pos>>24, (q6_pos>>16)&0xFF, (q6_pos>>8)&0xFF, q6_pos&0xFF,
+                            q1_vel>>24, (q1_vel>>16)&0xFF, (q1_vel>>8)&0xFF, q1_vel&0xFF,
+                            q2_vel>>24, (q2_vel>>16)&0xFF, (q2_vel>>8)&0xFF, q2_vel&0xFF, 
+                            q3_vel>>24, (q3_vel>>16)&0xFF, (q3_vel>>8)&0xFF, q3_vel&0xFF, 
+                            q4_vel>>24, (q4_vel>>16)&0xFF, (q4_vel>>8)&0xFF, q4_vel&0xFF,
+                            q5_vel>>24, (q5_vel>>16)&0xFF, (q5_vel>>8)&0xFF, q5_vel&0xFF, 
+                            q6_vel>>24, (q6_vel>>16)&0xFF, (q6_vel>>8)&0xFF, q6_vel&0xFF,
+                            status1, status2};
+    emuart4.write(0x0A, 26, simpleJs);
+}
+
+void grip(){
+    gripper_flow = 1;
+    _RS485_2.putc(0x70);
+    wait_us(75);
+    gripper_flow = 0;
+}
+
+void release(){
+    gripper_flow = 1;
+    _RS485_2.putc(0x74);
+    wait_us(75);
+    gripper_flow = 0;
 }
