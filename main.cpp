@@ -22,7 +22,7 @@ Actuator q2(Y1, Y7, Y3, -1, //3
             1.5f, 0.0, 0.0);
 Actuator q3(PB_1_ALT1, Y8, Y22, 1, //8
             _RS485_1, 0x3C, FLOW_CH1,
-            2.0f, 0.0, 0.0);
+            2.2f, 0.0, 0.0);
 Actuator q4(Y6 , Y0, Y2, 2, //4
             _RS485_2, 0x4C, FLOW_CH2, 
             1.4f, 0.00f, 0.0f);
@@ -66,7 +66,7 @@ void idleRoutine(){
 void initializeMsg(){
     SPLASH();
     OUTPUT_DISABLE();
-    _UART4.printf("EMULATOR BOARD v2.6 17-7-2020 C.Thanapong\r\n");
+    _UART4.printf("EMULATOR BOARD v2.8 28-7-2020 C.Thanapong\r\n");
     _UART4.printf("SystemCore Clock:  %ld Hz\r\n", GET_SYSCLK());
     _UART4.printf("InternalTemp:  %.2f C\r\n", GET_CORETEMP());
     _UART4.printf("+++++++++++++++++++++++++++++++\r\n");
@@ -108,7 +108,7 @@ void actuatorSetup(){
     m3 = 1;
     wait(0.1);
 
-    q4.setPconSat(-2, 2);
+    q4.setPconSat(-1, 1);
     q4.stepper.setRatio(55.222222);
     q4.stepper.setMicro(32);
     q4.encoder.setKdt(CONTROLLER_SAMPLING_T);
@@ -118,7 +118,7 @@ void actuatorSetup(){
     m4 = 1;
     wait(0.1);
 
-    diffA.setPconSat(-2, 2);
+    diffA.setPconSat(-1.5, 1.5);
     diffA.stepper.setRatio(14);
     diffA.stepper.setMicro(32);
     diffA.encoder.setKdt(CONTROLLER_SAMPLING_T);
@@ -127,7 +127,7 @@ void actuatorSetup(){
     mA = 1;
     wait(0.1);
 
-    diffB.setPconSat(-2, 2);
+    diffB.setPconSat(-1.5, 1.5);
     diffB.stepper.setRatio(14);
     diffB.stepper.setMicro(32);
     diffB.encoder.setKdt(CONTROLLER_SAMPLING_T);
@@ -585,11 +585,11 @@ void emuart4Parser(){
                     diffB.trajectory.setGoal(diffB.at(), i4+i5-i6, 0, 0, travelDuration);
                     break;
                 case 82:
-                    diffA_p_handle.clear();
-                    diffA_v_handle.clear();
-                    diffB_p_handle.clear();
-                    diffB_v_handle.clear();
-                    num_viapoints = (emuart4.dataLen+4)/52;
+                    // diffA_p_handle.clear();
+                    // diffA_v_handle.clear();
+                    // diffB_p_handle.clear();
+                    // diffB_v_handle.clear();
+                    num_viapoints = (emuart4.dataLen)/52;
                     for (int i = 0; i < 13; i++){
                         points[i].clear();
                         for (int j = 0; j < num_viapoints; j++){
@@ -605,8 +605,8 @@ void emuart4Parser(){
                     points[1].push_front(q2.at());
                     points[2].push_front(q3.at());
                     points[3].push_front(q4.at());
-                    points[4].push_front(q5_lat);
-                    points[5].push_front(q6_lat);
+                    points[4].push_front(diffA.at());
+                    points[5].push_front(diffB.at());
                     points[6].push_front(0);
                     points[7].push_front(0);
                     points[8].push_front(0);
@@ -614,22 +614,22 @@ void emuart4Parser(){
                     points[10].push_front(0);
                     points[11].push_front(0);
                     
-                    diffA_p_handle.push_back(diffA.at());
-                    diffB_p_handle.push_back(diffB.at());
-                    diffA_v_handle.push_back(0);
-                    diffB_v_handle.push_back(0);
-                    for (int i = 1; i < num_viapoints; i++){
-                        diffA_p_handle.push_back(points[3].at(i)-points[4].at(i)-points[5].at(i));
-                        diffB_p_handle.push_back(points[3].at(i)+points[4].at(i)-points[5].at(i));
-                        diffA_v_handle.push_back(points[9].at(i)-points[10].at(i)-points[11].at(i));
-                        diffB_v_handle.push_back(points[9].at(i)+points[10].at(i)-points[11].at(i));
-                    }
+                    // diffA_p_handle.push_back(diffA.at());
+                    // diffB_p_handle.push_back(diffB.at());
+                    // diffA_v_handle.push_back(0);
+                    // diffB_v_handle.push_back(0);
+                    // for (int i = 1; i < num_viapoints; i++){
+                    //     diffA_p_handle.push_back(points[3].at(i)-points[4].at(i)-points[5].at(i));
+                    //     diffB_p_handle.push_back(points[3].at(i)+points[4].at(i)-points[5].at(i));
+                    //     diffA_v_handle.push_back(points[9].at(i)-points[10].at(i)-points[11].at(i));
+                    //     diffB_v_handle.push_back(points[9].at(i)+points[10].at(i)-points[11].at(i));
+                    // }
                     q1.trajectory.setViaPoints(points[0], points[6], points[12]);
                     q2.trajectory.setViaPoints(points[1], points[7], points[12]);
                     q3.trajectory.setViaPoints(points[2], points[8], points[12]);
                     q4.trajectory.setViaPoints(points[3], points[9], points[12]);
-                    diffA.trajectory.setViaPoints(diffA_p_handle,diffA_v_handle, points[12]);
-                    diffB.trajectory.setViaPoints(diffB_p_handle, diffB_v_handle, points[12]);
+                    diffA.trajectory.setViaPoints(points[4], points[10], points[12]);
+                    diffB.trajectory.setViaPoints(points[5], points[11], points[12]);
                     break;
                 case 147:
                     ONBOARD_LEDS[2] = emuart4.data[0];
@@ -639,6 +639,7 @@ void emuart4Parser(){
                     break;
                 case 149:
                     g_on = emuart4.data[0];
+                    break;
             }
         } else if (dataGood == -1){
             // emuart4.write(0x10);
