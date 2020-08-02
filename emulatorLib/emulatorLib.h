@@ -19,12 +19,12 @@ class Emuart{
         ~Emuart();
         void            init(void);
         uint8_t         command;
-        uint8_t         data[256]; //command will be added at dataLen+1 when calculate checksum
-        uint8_t         dataLen; //Excluding start,dataLen
+        uint8_t         data[4096]; //command will be added at dataLen+1 when calculate checksum
+        uint16_t        dataLen; //Excluding start,dataLen
         void            clearData(void);
         void            clearAll(void);
         int             parse(void);
-        void            write(uint8_t command, uint8_t dataLen, uint8_t* dataBuffer);
+        void            write(uint8_t command, uint16_t dataLen, uint8_t* dataBuffer);
         void            write(uint8_t command);
         void            print(char* string);
         void            clearInputBuffer(void);

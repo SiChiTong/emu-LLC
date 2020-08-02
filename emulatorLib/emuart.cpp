@@ -33,8 +33,11 @@ int Emuart::parse(){
         if (this->fifo.get() == 0x7E){
             if (this->fifo.get() == 0x77){
                 uint8_t crc[4];
+                uint8_t dataLenMsb, dataLenLsb;
                 this->command = this->fifo.get(); //get command
-                this->dataLen = this->fifo.get(); //get data length
+                dataLenMsb = this->fifo.get();
+                dataLenLsb = this->fifo.get();
+                this->dataLen = (dataLenMsb<<8)|dataLenLsb; //get data length
                 for (uint16_t i = 0; i <= this->dataLen+3; i++){ 
                     if (i >= this->dataLen) crc[i-this->dataLen] = this->fifo.get();
                     else this->data[i] = this->fifo.get();
@@ -59,12 +62,13 @@ int Emuart::parse(){
     
 }
 
-void Emuart::write(uint8_t _command, uint8_t _dataLen, uint8_t* _dataBuffer){
+void Emuart::write(uint8_t _command, uint16_t _dataLen, uint8_t* _dataBuffer){
     uint8_t dataForCrc[_dataLen+1];
     this->SER.putc(0x7E);
     this->SER.putc(0x77);
     this->SER.putc(_command);
-    this->SER.putc(_dataLen);
+    this->SER.putc((_dataLen>>8) & 0xFF);
+    this->SER.putc(_dataLen & 0xFF);
     for (int i = 0; i <= _dataLen-1; i++){
         dataForCrc[i] = _dataBuffer[i];
         this->SER.putc(_dataBuffer[i]);
@@ -81,6 +85,7 @@ void Emuart::write(uint8_t _command){
     this->SER.putc(0x7E);
     this->SER.putc(0x77);
     this->SER.putc(_command);
+    this->SER.putc(0);
     this->SER.putc(0);
     uint8_t dataForCrc[1] = {_command};
     uint32_t crc32Send = crc32((char*)dataForCrc,1);

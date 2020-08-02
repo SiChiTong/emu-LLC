@@ -21,16 +21,16 @@ Actuator q2(Y1, Y7, Y3, -1, //3
             1.5f, 0.0, 0.0);
 Actuator q3(PB_1_ALT1, Y8, Y22, 1, //8
             _RS485_1, 0x3C, FLOW_CH1,
-            2.2f, 0.0, 0.0);
+            1.5f, 0.0, 0.0);
 Actuator q4(Y6 , Y0, Y2, 2, //4
             _RS485_2, 0x4C, FLOW_CH2, 
-            1.4f, 0.00f, 0.0f);
+            0.7f, 0.00f, 0.0f);
 Actuator diffA(Y16, Y12, Y5, 2, //1
             _RS485_2, 0xA0, FLOW_CH2, 
-            1.5f, 0.00f, 0.0f);
+            1.0f, 0.00f, 0.0f);
 Actuator diffB(Y14, Y18, Y21, 2, //14
             _RS485_2, 0xB0, FLOW_CH2, 
-            1.5f, 0.00f, 0.0f);
+            1.0f, 0.00f, 0.0f);
 DigitalIn EMS(PE_10);
 DigitalOut gripper_flow(FLOW_CH2);
 
@@ -90,7 +90,7 @@ void actuatorSetup(){
     m1 = 1;
     wait(0.1);
 
-    q2.setPconSat(-3, 3);
+    q2.setPconSat(-2, 2);
     q2.stepper.setRatio(40.0);
     q2.stepper.setMicro(32);
     q2.encoder.setKdt(CONTROLLER_SAMPLING_T);
@@ -564,7 +564,7 @@ void jointStates(){
                             q5_vel>>24, (q5_vel>>16)&0xFF, (q5_vel>>8)&0xFF, q5_vel&0xFF, 
                             q6_vel>>24, (q6_vel>>16)&0xFF, (q6_vel>>8)&0xFF, q6_vel&0xFF,
                             status1, status2};
-    emuart4.write(0x0A, 26, simpleJs);
+    emuart4.write(0x0B, 50, fullJs);
 }
 
 void grip(){
